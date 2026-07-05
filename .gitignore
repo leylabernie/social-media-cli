@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.local
+.browser-profiles/
+.cache/
+data/
+*.log
+.DS_Store
