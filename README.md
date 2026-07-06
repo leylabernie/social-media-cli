@@ -1,77 +1,152 @@
-# LuxeMia Social — Social Media Automation Dashboard
+# LuxeMia Social — Social Media Dashboard
 
-A deployable Next.js web app that automates social media posting for [LuxeMia](https://luxemia.shop). Scrapes product info, generates AI captions, and posts to X, Instagram, Facebook, Pinterest, and LinkedIn via browser automation — all from a web dashboard.
+A Next.js web app that automates posting luxemia.shop products to Instagram, Facebook, TikTok, and Pinterest. Connect your accounts via OAuth, paste a product URL, review AI-generated captions, and post — all from one dashboard.
+
+## Features
+
+- **OAuth Authentication** — Click "Connect" and authenticate directly with each platform. No passwords stored.
+- **AI Captions** — GPT-4o-mini generates platform-optimized captions
+- **Product Scraping** — Automatically extracts product info from any luxemia.shop URL
+- **One-Click Posting** — Post to multiple platforms simultaneously
+- **Post History** — Track all your past posts and their status
+
+## Supported Platforms
+
+| Platform | Connection | Posting Method |
+|----------|-----------|----------------|
+| Instagram | OAuth via Facebook | Instagram Graph API |
+| Facebook | OAuth | Facebook Graph API |
+| TikTok | OAuth | TikTok API v2 |
+| Pinterest | OAuth | Pinterest API v5 |
 
 ## Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/leylabernie/social-media-cli)
+### Step 1: Create a Facebook App (for Instagram + Facebook)
+1. Go to [developers.facebook.com](https://developers.facebook.com)
+2. Create a new app → Select "Other" → "Business"
+3. Add products: "Facebook Login" and "Instagram Graph API"
+4. Settings → Basic → copy **App ID** and **App Secret**
+5. Add your Vercel domain to "Valid OAuth Redirect URIs":
+   - `https://your-app.vercel.app/api/auth/instagram/callback`
+   - `https://your-app.vercel.app/api/auth/facebook/callback`
 
-## Environment Variables
+### Step 2: Create a TikTok App
+1. Go to [developers.tiktok.com](https://developers.tiktok.com)
+2. Create a new app
+3. Add redirect URI: `https://your-app.vercel.app/api/auth/tiktok/callback`
+4. Copy **Client Key** and **Client Secret**
 
-After deploying, set these in your Vercel dashboard (Settings → Environment Variables):
+### Step 3: Create a Pinterest App
+1. Go to [developers.pinterest.com](https://developers.pinterest.com)
+2. Create a new app
+3. Add redirect URI: `https://your-app.vercel.app/api/auth/pinterest/callback`
+4. Copy **App ID** and **App Secret**
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `OPENAI_API_KEY` | OpenAI API key for caption generation | Yes |
-| `KV_URL` | Vercel KV URL (create at vercel.com/storage) | Yes |
-| `KV_REST_API_URL` | Vercel KV REST API URL | Yes |
-| `KV_REST_API_TOKEN` | Vercel KV REST API token | Yes |
-| `KV_REST_API_READ_ONLY_TOKEN` | Vercel KV read-only token | Yes |
-| `X_USERNAME` / `X_PASSWORD` | X login credentials | For X posting |
-| `INSTAGRAM_USERNAME` / `INSTAGRAM_PASSWORD` | Instagram login | For IG posting |
-| `FACEBOOK_EMAIL` / `FACEBOOK_PASSWORD` | Facebook login | For FB posting |
-| `FB_PAGE_URL` | Your Facebook page URL | For FB posting |
-| `PINTEREST_EMAIL` / `PINTEREST_PASSWORD` | Pinterest login | For Pinterest |
-| `PINTEREST_BOARD_NAME` | Board to pin to | For Pinterest |
-| `LINKEDIN_EMAIL` / `LINKEDIN_PASSWORD` | LinkedIn login | For LinkedIn |
+### Step 4: Create Vercel KV
+1. Go to [vercel.com/storage](https://vercel.com/storage)
+2. Click "Create Database" → "KV"
+3. Connect to your project (auto-adds KV env vars)
 
-## Setup Steps
+### Step 5: Deploy
+```bash
+# Clone
+git clone https://github.com/leylabernie/social-media-cli.git
+cd social-media-cli
 
-### 1. Create Vercel KV Storage
-- Go to [vercel.com/storage](https://vercel.com/storage)
-- Click "Create Database" → "KV"
-- Connect it to your project
-- The `KV_*` env vars will be auto-populated
+# Or deploy directly:
+# https://vercel.com/new/clone?repository-url=https://github.com/leylabernie/social-media-cli
+```
 
-### 2. Set Social Media Credentials
-- Add each platform's username/password as environment variables
-- The app uses these to log in and post (cookies are stored in KV for session persistence)
+### Step 6: Add Environment Variables
+In Vercel dashboard → Settings → Environment Variables:
 
-### 3. First Post
-- Visit your deployed URL
-- Paste a luxemia.shop product URL
-- Review AI-generated captions
-- Select platforms and click Post
+| Variable | Value | Source |
+|----------|-------|--------|
+| `OPENAI_API_KEY` | Your OpenAI key | [platform.openai.com](https://platform.openai.com) |
+| `FACEBOOK_APP_ID` | Your Facebook App ID | developers.facebook.com |
+| `FACEBOOK_APP_SECRET` | Your Facebook App Secret | developers.facebook.com |
+| `TIKTOK_CLIENT_KEY` | Your TikTok Client Key | developers.tiktok.com |
+| `TIKTOK_CLIENT_SECRET` | Your TikTok Client Secret | developers.tiktok.com |
+| `PINTEREST_APP_ID` | Your Pinterest App ID | developers.pinterest.com |
+| `PINTEREST_APP_SECRET` | Your Pinterest App Secret | developers.pinterest.com |
+| `NEXT_PUBLIC_APP_URL` | Your Vercel URL | `https://your-app.vercel.app` |
+
+KV variables are auto-populated when you connect the KV database.
+
+### Step 7: Use It
+1. Visit your deployed URL
+2. Click **"Connect Instagram"** (or any platform)
+3. Authenticate through the platform's official login
+4. Repeat for other platforms
+5. Paste a luxemia.shop product URL
+6. Review AI-generated captions
+7. Select platforms and click **Post**
 
 ## How It Works
 
-| Step | What Happens |
-|------|-------------|
-| **Scrape** | Fetches product title, price, image from luxemia.shop |
-| **AI Captions** | GPT-4o-mini generates unique captions per platform |
-| **Review** | You edit/approve each caption in the dashboard |
-| **Post** | Browser automation logs in and posts to each selected platform |
-| **History** | All posts saved with URLs for tracking |
+```
+User clicks "Connect Instagram"
+  → Redirected to Facebook OAuth
+  → Logs in on Facebook's official page
+  → Redirected back with auth token
+  → Token stored securely in Vercel KV
 
-## API Endpoints
+User pastes product URL
+  → Backend scrapes luxemia.shop
+  → AI generates captions per platform
+  → User reviews and edits captions
+  → User selects platforms
+  → Backend calls each platform's API
+  → Posts published!
+```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/scrape` | POST | `{ url }` → product info |
-| `/api/caption` | POST | `{ product, platforms }` → generated captions |
-| `/api/post` | POST | `{ product, platforms, captions }` → post results |
-| `/api/status` | GET | Check platform auth status |
-| `/api/history` | GET | Get post history |
+## Project Structure
 
-## Architecture
-
-- **Frontend**: Next.js 14 App Router + React + Tailwind CSS
-- **Browser Automation**: Playwright Core + @sparticuz/chromium (serverless-compatible)
-- **AI**: OpenAI GPT-4o-mini for caption generation
-- **Storage**: Vercel KV for sessions and post history
-- **Image Processing**: Sharp (serverless-compatible)
-- **Scraping**: Cheerio + native fetch
+```
+app/
+  page.tsx                 # Main dashboard
+  layout.tsx               # Root layout
+  globals.css              # Tailwind styles
+  api/
+    scrape/route.ts        # Product scraping
+    caption/route.ts       # AI caption generation
+    post/route.ts          # Publish to platforms
+    history/route.ts       # Post history
+    accounts/route.ts      # Connected accounts list
+    auth/
+      instagram/route.ts   # → OAuth redirect
+      instagram/callback/  # ← OAuth callback
+      facebook/route.ts
+      facebook/callback/
+      tiktok/route.ts
+      tiktok/callback/
+      pinterest/route.ts
+      pinterest/callback/
+      disconnect/route.ts
+components/
+  ConnectCard.tsx          # Platform connection card
+  ProductInput.tsx         # URL input
+  ProductPreview.tsx       # Product display
+  CaptionEditor.tsx        # Caption editing
+  PlatformCheckboxes.tsx   # Platform selection
+  PostButton.tsx           # Post action
+  ResultsPanel.tsx         # Post results
+  HistoryTable.tsx         # History display
+lib/
+  types.ts                 # TypeScript types
+  kv.ts                    # Vercel KV wrapper
+  ai.ts                    # OpenAI integration
+  platforms/
+    instagram.ts           # Instagram Graph API
+    facebook.ts            # Facebook Graph API
+    tiktok.ts              # TikTok API
+    pinterest.ts           # Pinterest API
+```
 
 ## Tech Stack
 
-Next.js 14, React 18, TypeScript, Tailwind CSS, Playwright Core, @sparticuz/chromium, OpenAI, Sharp, Cheerio, Vercel KV, Lucide React
+Next.js 14, React 18, TypeScript, Tailwind CSS, Vercel KV, OpenAI GPT-4o-mini
+
+## License
+
+MIT
