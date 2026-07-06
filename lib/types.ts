@@ -1,70 +1,88 @@
 /**
- * @file Shared TypeScript type definitions for the Luxemia Social backend.
- * @module @/lib/types
+ * Shared TypeScript types for the Luxemia Social Dashboard.
+ * All platform modules and API routes import from here.
  */
 
-/** Product information scraped from a luxemia.shop product page */
+/** Product information scraped from a Luxemia product page */
 export interface ProductInfo {
-  /** Product title/name */
   title: string;
-  /** Product description or excerpt */
   description: string;
-  /** Product price as a formatted string */
   price: string;
-  /** Original product page URL */
-  url: string;
-  /** URL to the product's primary image */
   imageUrl: string;
-  /** Array of product tags or categories */
-  tags: string[];
+  url: string;
 }
 
-/** A generated caption for a specific social media platform */
-export interface CaptionResult {
-  /** Target platform identifier (x, instagram, facebook, pinterest, linkedin) */
+/** Result of a single platform post attempt */
+export interface PostResult {
   platform: string;
-  /** Generated caption text */
+  status: "success" | "error";
+  url?: string;
+  message?: string;
+  postId?: string;
+}
+
+/** Instagram token shape stored in Vercel KV */
+export interface InstagramToken {
+  accessToken: string;
+  igBusinessAccountId: string;
+}
+
+/** Facebook token shape stored in Vercel KV */
+export interface FacebookToken {
+  accessToken: string;
+  pageId: string;
+}
+
+/** TikTok token shape stored in Vercel KV */
+export interface TikTokToken {
+  accessToken: string;
+  openId: string;
+}
+
+/** Pinterest token shape stored in Vercel KV */
+export interface PinterestToken {
+  accessToken: string;
+}
+
+/** Union of all platform token types */
+export type PlatformToken =
+  | InstagramToken
+  | FacebookToken
+  | TikTokToken
+  | PinterestToken;
+
+/** Supported platform identifiers */
+export type Platform = "instagram" | "facebook" | "tiktok" | "pinterest";
+
+/** Caption generated for a specific platform */
+export interface GeneratedCaption {
+  platform: Platform;
   caption: string;
 }
 
-/** Result of posting to a single social media platform */
-export interface PostResult {
-  /** Target platform identifier */
-  platform: string;
-  /** Whether the post was successfully published */
-  success: boolean;
-  /** URL to the published post, if successful */
-  postUrl?: string;
-  /** Error message, if posting failed */
-  error?: string;
-}
-
-/** Authentication and connection status for a social media platform */
-export interface PlatformStatus {
-  /** Platform identifier */
-  platform: string;
-  /** Human-readable display name */
-  displayName: string;
-  /** Whether valid session cookies exist in KV storage */
-  authenticated: boolean;
-  /** ISO timestamp of the last status check */
-  lastCheck: string;
-}
-
-/** A stored record of a product posting session */
-export interface PostRecord {
-  /** Unique identifier for the post record */
+/** Stored history entry for a batch post operation */
+export interface HistoryEntry {
   id: string;
-  /** URL of the product that was posted */
-  productUrl: string;
-  /** Title of the product that was posted */
-  productTitle: string;
-  /** URL to the product image */
-  productImageUrl: string;
-  /** ISO timestamp when the post was created */
-  createdAt: string;
-  /** Overall posting status */
-  status: 'pending' | 'posted' | 'partial' | 'failed';
-  /** Results for each platform that was attempted */
+  timestamp: string;
+  product: ProductInfo;
+  platforms: Platform[];
   results: PostResult[];
+}
+
+/** Request body for the main /api/post endpoint */
+export interface PostRequestBody {
+  product: ProductInfo;
+  platforms: Platform[];
+  caption: string;
+}
+
+/** Request body for the /api/scrape endpoint */
+export interface ScrapeRequestBody {
+  url: string;
+}
+
+/** Request body for the /api/caption endpoint */
+export interface CaptionRequestBody {
+  product: ProductInfo;
+  platforms: Platform[];
 }

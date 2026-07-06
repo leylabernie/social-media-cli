@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'LuxeMia Social — Social Media Automation',
-  description: 'Automated social media posting for luxemia.shop products',
+  title: "LuxeMia Social",
+  description: "Social media automation",
 };
 
 export default function RootLayout({
@@ -13,7 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-950 text-white min-h-screen">{children}</body>
+      <body className="min-h-screen bg-gray-950 text-white antialiased">
+        {children}
+      </body>
     </html>
   );
 }

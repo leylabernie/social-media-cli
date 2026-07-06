@@ -1,155 +1,130 @@
 /**
- * @file OpenAI-powered caption generation for social media platforms.
- * Generates platform-optimized captions with rules for length, tone, emojis, and hashtags.
- * @module @/lib/ai
+ * OpenAI-powered caption generator for social media platforms.
+ *
+ * Generates platform-optimized captions using GPT-4o-mini,
+ * with tailored tone, hashtag strategy, and character limits
+ * for each supported platform.
+ *
+ * Requires the OPENAI_API_KEY environment variable.
  */
 
-import OpenAI from 'openai';
-import type { ProductInfo } from '@/lib/types';
+import OpenAI from "openai";
+import type { ProductInfo, Platform, GeneratedCaption } from "@/lib/types";
 
-/** Platform-specific caption rules and guidelines */
-interface PlatformRules {
-  /** Maximum character length for the caption */
-  maxLength: number;
-  /** Optimal number of emojis */
-  emojiCount: string;
-  /** Optimal number of hashtags */
-  hashtagCount: string;
-  /** Tone/style guideline */
-  tone: string;
-  /** Additional platform-specific instructions */
-  extra: string;
-}
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-/** Caption rules for each supported platform */
-const PLATFORM_RULES: Record<string, PlatformRules> = {
-  x: {
-    maxLength: 280,
-    emojiCount: '1-2',
-    hashtagCount: '2-3',
-    tone: 'punchy, concise, engaging',
-    extra: 'Max 280 chars. 1-2 emojis max. 2-3 hashtags. Punchy tone. Include URL.',
-  },
-  instagram: {
-    maxLength: 2200,
-    emojiCount: '5-8',
-    hashtagCount: '10-15',
-    tone: 'lifestyle, aspirational, friendly',
-    extra: 'Max 2200 chars but 150-300 ideal. 5-8 emojis. 10-15 hashtags. Aspirational tone. Include URL.',
-  },
-  facebook: {
-    maxLength: 500,
-    emojiCount: '2-3',
-    hashtagCount: '1-2',
-    tone: 'conversational, community-focused, warm',
-    extra: 'Max 500 chars. 2-3 emojis. Conversational, ask a question. Include URL.',
-  },
-  pinterest: {
-    maxLength: 500,
-    emojiCount: '2-3',
-    hashtagCount: '5-8',
-    tone: 'descriptive, inspirational, SEO-rich',
-    extra: 'Title (100 chars) + Description (500 chars). SEO-rich. 5-8 hashtags. DO NOT include URL in text.',
-  },
-  linkedin: {
-    maxLength: 700,
-    emojiCount: '1-2',
-    hashtagCount: '3-5',
-    tone: 'professional, insightful, industry-relevant',
-    extra: 'Max 700 chars. Professional tone. 1-2 emojis. 3-5 hashtags. Include URL.',
-  },
+/** Platform-specific rules injected into the AI prompt */
+const PLATFORM_RULES: Record<Platform, string> = {
+  instagram:
+    "Instagram: Use engaging, visual language. Include 5-10 relevant hashtags. " +
+    "Add emojis for personality. Keep under 2,200 characters but aim for 125-150 " +
+    "for optimal engagement. Use line breaks for readability.",
+
+  facebook:
+    "Facebook: Conversational and friendly tone. Ask questions to drive engagement. " +
+    "Use 1-2 hashtags max. Keep under 500 characters. Include a call-to-action.",
+
+  tiktok:
+    "TikTok: Short, punchy, trend-aware captions. Use trending hashtags if relevant. " +
+    "Keep under 100 characters. Add hooks and emojis. Fun, casual energy.",
+
+  pinterest:
+    "Pinterest: Keyword-rich, descriptive text. Focus on searchability. " +
+    "Use natural language with keywords buyers search for. " +
+    "Include a clear value proposition. Keep under 500 characters.",
 };
 
 /**
- * Build the system prompt for caption generation.
- * @param platform - Platform identifier
- * @param rules - Platform-specific rules
- * @returns System prompt string
- */
-function buildSystemPrompt(platform: string, rules: PlatformRules): string {
-  return `You are a social media copywriter specializing in ${platform} content.
-Follow these rules STRICTLY:
-- Maximum ${rules.maxLength} characters
-- Use exactly ${rules.emojiCount} emoji(s)
-- Include exactly ${rules.hashtagCount} hashtag(s)
-- Tone: ${rules.tone}
-- ${rules.extra}
-- Return ONLY the caption text, nothing else
-- Do not use markdown formatting`;
-}
-
-/**
- * Build the user prompt with product information.
- * @param product - Product information
- * @returns User prompt string
- */
-function buildUserPrompt(product: ProductInfo): string {
-  const tags = product.tags.length > 0 ? product.tags.join(', ') : 'N/A';
-  return `Write a social media caption for this product:
-
-Title: ${product.title}
-Price: ${product.price}
-Description: ${product.description}
-Tags: ${tags}
-URL: ${product.url}`;
-}
-
-/**
- * Generate a platform-optimized caption for a product.
- * Uses OpenAI GPT-4o-mini with platform-specific rules.
- * @param product - Product information to base the caption on
- * @param platform - Target platform identifier (x, instagram, facebook, pinterest, linkedin)
- * @returns Generated caption text, trimmed to platform limits
- * @throws Error if caption generation fails or platform is unsupported
+ * Generate a social media caption optimized for a specific platform.
+ *
+ * Uses GPT-4o-mini with platform-specific prompting to create
+ * tailored captions that match each platform's audience and format.
+ *
+ * @param product - The product information to base the caption on
+ * @param platform - The target social media platform
+ * @returns The generated caption string
+ * @throws If the OpenAI API call fails or returns invalid data
  */
 export async function generateCaption(
   product: ProductInfo,
-  platform: string
+  platform: Platform
 ): Promise<string> {
   const rules = PLATFORM_RULES[platform];
-  if (!rules) {
-    throw new Error(`No caption rules defined for platform: ${platform}`);
-  }
 
-  console.log(`[AI] Generating caption for ${platform}...`);
+  const systemPrompt =
+    `You are an expert social media copywriter for a luxury e-commerce brand called Luxemia.\n` +
+    `Write a compelling ${platform} caption for the following product.\n` +
+    `Rules for this platform:\n${rules}\n\n` +
+    `Do NOT include markdown formatting. Output ONLY the caption text.`;
 
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
+  const userPrompt =
+    `Product: ${product.title}\n` +
+    `Price: ${product.price}\n` +
+    `Description: ${product.description}\n\n` +
+    `Write the ${platform} caption now:`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
-        {
-          role: 'system',
-          content: buildSystemPrompt(platform, rules),
-        },
-        {
-          role: 'user',
-          content: buildUserPrompt(product),
-        },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
       ],
-      max_tokens: 500,
       temperature: 0.8,
+      max_tokens: 500,
     });
 
-    const caption = response.choices[0]?.message?.content?.trim() ?? '';
+    const caption = completion.choices[0]?.message?.content?.trim();
 
     if (!caption) {
-      throw new Error('OpenAI returned empty caption');
+      throw new Error("OpenAI returned an empty caption.");
     }
 
-    // Enforce max length
-    const trimmed = caption.length > rules.maxLength
-      ? caption.substring(0, rules.maxLength)
-      : caption;
-
-    console.log(`[AI] Generated caption for ${platform} (${trimmed.length} chars)`);
-    return trimmed;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[AI] Caption generation failed for ${platform}: ${message}`);
-    throw new Error(`Failed to generate caption for ${platform}: ${message}`);
+    return caption;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown OpenAI error";
+    throw new Error(`[CaptionGenerator] Failed for ${platform}: ${message}`);
   }
+}
+
+/**
+ * Generate captions for multiple platforms in parallel.
+ *
+ * @param product - The product information to base captions on
+ * @param platforms - Array of target platforms
+ * @returns Array of platform-caption pairs
+ * @throws If any individual caption generation fails
+ */
+export async function generateCaptionsForPlatforms(
+  product: ProductInfo,
+  platforms: Platform[]
+): Promise<GeneratedCaption[]> {
+  const results = await Promise.allSettled(
+    platforms.map(async (platform) => {
+      const caption = await generateCaption(product, platform);
+      return { platform, caption } satisfies GeneratedCaption;
+    })
+  );
+
+  const captions: GeneratedCaption[] = [];
+  const errors: string[] = [];
+
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      captions.push(result.value);
+    } else {
+      errors.push(result.reason?.message ?? String(result.reason));
+    }
+  }
+
+  if (captions.length === 0) {
+    throw new Error(
+      `Failed to generate captions for all platforms: ${errors.join("; ")}`
+    );
+  }
+
+  return captions;
 }

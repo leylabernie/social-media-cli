@@ -1,50 +1,54 @@
 /**
- * @file API Route - GET /api/history
- * Returns the most recent post records from KV storage.
- * @module @/api/history/route
+ * Post History API route.
+ *
+ * GET /api/history
+ *
+ * Returns recent post history entries from Vercel KV.
+ * Each entry includes the product, platforms posted to, and results.
+ *
+ * Query params:
+ *   - limit: Maximum number of entries (default 20, max 50)
  */
 
-import { getPosts } from '@/lib/kv-store';
-import type { PostRecord } from '@/lib/types';
-
-/** Default number of posts to return */
-const DEFAULT_LIMIT = 20;
-/** Maximum allowed limit to prevent abuse */
-const MAX_LIMIT = 100;
+import { NextRequest, NextResponse } from "next/server";
+import { getHistory } from "@/lib/kv";
 
 /**
  * GET handler for /api/history
- * Returns the last N post records, most recent first.
- * @param request - The incoming HTTP request (supports ?limit=N query param)
- * @returns JSON response with posts array
+ *
+ * Returns the most recent post history entries, newest first.
+ * Supports an optional `limit` query parameter.
  */
-export async function GET(request: Request): Promise<Response> {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse> {
   try {
-    // Parse the limit from query params
+    // Parse optional limit from query params
     const { searchParams } = new URL(request.url);
-    const limitParam = searchParams.get('limit');
-    let limit = DEFAULT_LIMIT;
+    const rawLimit = searchParams.get("limit");
 
-    if (limitParam !== null) {
-      const parsed = parseInt(limitParam, 10);
+    let limit = 20;
+    if (rawLimit) {
+      const parsed = parseInt(rawLimit, 10);
       if (!isNaN(parsed) && parsed > 0) {
-        limit = Math.min(parsed, MAX_LIMIT);
+        limit = Math.min(parsed, 50); // cap at 50
       }
     }
 
-    // Fetch posts from KV storage
-    const posts: PostRecord[] = await getPosts(limit);
+    // Fetch history from KV
+    const entries = await getHistory(limit);
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
-      posts,
-      count: posts.length,
+      entries,
+      count: entries.length,
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error occurred';
-    console.error('[API /history] Error:', message);
-    return Response.json(
-      { success: false, error: message },
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("[HISTORY] Error fetching history:", message);
+
+    return NextResponse.json(
+      { success: false, error: `Failed to fetch history: ${message}` },
       { status: 500 }
     );
   }
