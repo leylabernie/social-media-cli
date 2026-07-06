@@ -8,7 +8,7 @@
  */
 
 import { kv } from "@vercel/kv";
-import type { Platform, PlatformToken, HistoryEntry } from "@/lib/types";
+import type { Platform, PlatformToken, HistoryEntry, StoredToken } from "@/lib/types";
 
 /**
  * Retrieve an OAuth token for a given platform from KV storage.
@@ -102,9 +102,9 @@ export async function getHistory(limit = 50): Promise<HistoryEntry[]> {
  *
  * @returns Record of platform → token for all found tokens
  */
-export async function getAllTokens(): Promise<Record<string, unknown>> {
+export async function getAllTokens(): Promise<Record<string, StoredToken>> {
   const platforms: Platform[] = ['instagram', 'facebook', 'tiktok', 'pinterest'];
-  const result: Record<string, unknown> = {};
+  const result: Record<string, StoredToken> = {};
 
   for (const platform of platforms) {
     try {
