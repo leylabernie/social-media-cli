@@ -94,3 +94,50 @@ export async function getHistory(limit = 50): Promise<HistoryEntry[]> {
   const entries = await kv.lrange<HistoryEntry>(key, 0, limit - 1);
   return entries ?? [];
 }
+
+/**
+ * Retrieve tokens for all supported platforms.
+ * Returns an object with platform keys and token values.
+ * Missing tokens are omitted — check with `if (tokens.instagram)`.
+ *
+ * @returns Record of platform → token for all found tokens
+ */
+export async function getAllTokens(): Promise<Record<string, unknown>> {
+  const platforms: Platform[] = ['instagram', 'facebook', 'tiktok', 'pinterest'];
+  const result: Record<string, unknown> = {};
+
+  for (const platform of platforms) {
+    try {
+      const token = await getToken(platform);
+      result[platform] = token;
+    } catch {
+      // Token not found for this platform — skip
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Alias for deleteToken — removes a stored token.
+ * Used by the disconnect API route.
+ *
+ * @param platform - The social media platform identifier
+ */
+export async function removeToken(platform: Platform): Promise<void> {
+  return deleteToken(platform);
+}
+
+/**
+ * Generate a random state string for OAuth CSRF protection.
+ * Returns a 32-character hex string.
+ *
+ * @returns Random hex state string
+ */
+export function generateOAuthState(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}

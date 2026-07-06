@@ -86,3 +86,68 @@ export interface CaptionRequestBody {
   product: ProductInfo;
   platforms: Platform[];
 }
+
+/** Generic stored token shape for any platform */
+export interface StoredToken {
+  platform: Platform;
+  accessToken: string;
+  refreshToken?: string;
+  pageId?: string;
+  pageName?: string;
+  igBusinessAccountId?: string;
+  openId?: string;
+  connectedAt: string;
+  expiresAt?: string;
+}
+
+/** Connected account response for the dashboard */
+export interface ConnectedAccount {
+  platform: Platform;
+  displayName: string;
+  connected: boolean;
+  connectedAt?: string;
+}
+
+/** Facebook Pages API response */
+export interface FacebookPagesResponse {
+  data: Array<{
+    id: string;
+    name: string;
+    access_token: string;
+    category?: string;
+  }>;
+  paging?: {
+    cursors?: {
+      before: string;
+      after: string;
+    };
+  };
+}
+
+/** Instagram Business Account linked to a Facebook page */
+export interface InstagramBusinessAccountResponse {
+  instagram_business_account?: {
+    id: string;
+  };
+  name: string;
+  id: string;
+}
+
+/** TikTok token exchange response */
+export interface TikTokTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  open_id: string;
+  expires_in: number;
+  scope: string;
+  token_type: string;
+}
+
+/** Pinterest token exchange response */
+export interface PinterestTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+  token_type: string;
+  expires_in: number;
+  scope: string;
+}
